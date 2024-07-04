@@ -3,44 +3,23 @@
 # rules for Debian packaging of libsecutils
 #
 # Copyright (c) Siemens Mobility GmbH, 2021
-# 
+#
 # Authors:
 #  David von Oheimb <David.von.Oheimb@siemens.com>
 #
 # This work is licensed under the terms of the Apache Software License 2.0.  See
-# the COPYING file in the top-level directory.           
-#               
+# the COPYING file in the top-level directory.
+#
 # SPDX-License-Identifier: Apache-2.0
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+export LIBDIR=usr/lib/${DEB_HOST_MULTIARCH}
 
-CC=$(DEB_HOST_GNU_TYPE)-gcc
-CXX=$(DEB_HOST_GNU_TYPE)-g++
-AR=$(DEB_HOST_GNU_TYPE)-ar
+include /usr/share/dpkg/buildflags.mk
+include /usr/share/dpkg/pkg-info.mk
+
 
 %:
 	dh $@
 
-# prevent dh_build from trying to use "cmake"
 override_dh_auto_configure:
-	ln -sf Makefile_v1 Makefile
-
-## make sure that clean_deb is used and CMake is not used
-override_dh_auto_clean:
-	make -f Makefile_v1 clean clean_deb
-
-# adding compile flags as, defaults are commonly debug flags
-override_dh_auto_build:
-#	CFLAGS="-O2 -DNDEBUG" CXXFLAGS="-O2 -DNDEBUG" DEBUG_FLAGS="" LDFLAGS=""
-#  NDEBUG=1 can be used to avoid dependency on libasan and libubsan
-	# OPENSSL_DIR=/usr
-	CC=$(CC) CXX=$(CXX) AR=$(AR) \
-	dh_auto_build -- -f Makefile_v1 OPENSSL_DIR="$(OPENSSL_DIR)" -j1 # build_all doc
-
-override_dh_auto_install:
-	touch icvutil # workaround in case SECUTILS_USE_ICV is unset
-	dh_auto_install --destdir debian/tmp -- -f Makefile_v1
-
-override_dh_shlibdeps:
-	dh_shlibdeps --dpkg-shlibdeps-params="--ignore-missing-info -l$(OPENSSL_DIR) -l$(OPENSSL_LIB)"
-
-override_dh_auto_test:
-# do not run any tests
+	dh_auto_configure -- -DSECURITY_UTILITIES_USE_ICV=ON -DDEBIAN_BUILD=ON

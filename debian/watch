@@ -1,0 +1,5 @@
+Version: 5
+Source: https://github.com/siemens/libsecutils.git
+Matching-Pattern: refs/tags/v@ANY_VERSION@
+Mode: git
+Git-Mode: full

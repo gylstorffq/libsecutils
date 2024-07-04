@@ -1,0 +1,461 @@
+Description: <short summary of the patch>
+ TODO: Put a short summary on the line above and replace this paragraph
+ with a longer explanation of this change. Complete the meta-information
+ with other relevant fields (see below for details). To make it easier, the
+ information below has been extracted from the changelog. Adjust it or drop
+ it.
+ .
+ libsecutils (2.1-1) stable; urgency=medium
+ .
+   * Various fixes on build system, code, and OpenSSL version compatibility
+Author: David von Oheimb <David.von.Oheimb@siemens.com>
+
+---
+The information above should follow the Patch Tagging Guidelines, please
+checkout https://dep.debian.net/deps/dep3/ to learn about the format. Here
+are templates for supplementary fields that you might want to add:
+
+Origin: (upstream|backport|vendor|other), (<patch-url>|commit:<commit-id>)
+Bug: <upstream-bugtracker-url>
+Bug-Debian: https://bugs.debian.org/<bugnumber>
+Bug-Ubuntu: https://launchpad.net/bugs/<bugnumber>
+Forwarded: (no|not-needed|<patch-forwarded-url>)
+Applied-Upstream: <version>, (<commit-url>|commit:<commid-id>)
+Reviewed-By: <name and email of someone who approved/reviewed the patch>
+Last-Update: 2025-11-04
+
+--- libsecutils-2.1.orig/CMakeLists.txt
++++ libsecutils-2.1/CMakeLists.txt
+@@ -238,198 +238,199 @@ if(NOT TARGET clean_all)
+   )
+ endif()
+ 
+-# =============================
+-# Packaging
+-# =============================
++if(NOT DEBIAN_BUILD)
++  # =============================
++  # Packaging
++  # =============================
+ 
+-# generate Debian etc. packages using CPack, relying on installation defined above
++  # generate Debian etc. packages using CPack, relying on installation defined above
+ 
+-if(DEFINED CPACK_PACKAGE_NAME)
+-  return()
+-endif()
+-
+-SET(CPACK_PACKAGE_NAME libsecutils)
+-SET(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/siemens/libsecutils")
+-SET(CPACK_PACKAGE_ICON "${CMAKE_CURRENT_SOURCE_DIR}/libsecutils.svg")
+-SET(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
+-SET(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt")
+-SET(CPACK_PACKAGE_VENDOR "Siemens")
+-set(CPACK_PACKAGE_CONTACT "David von Oheimb <David.von.Oheimb@siemens.com>")
+-
+-set(CPACK_STRIP_FILES ON)
+-
+-set(CPACK_COMPONENTS_ALL
+-  security-utilities_library_Runtime
+-  security-utilities_library_Development
+-)
+-if (SECURITY_UTILITIES_USE_ICV)
+-  list(APPEND CPACK_COMPONENTS_ALL security-utilities_icvutil_Runtime)
+-endif()
++  if(DEFINED CPACK_PACKAGE_NAME)
++    return()
++  endif()
+ 
+-set(CPACK_COMPONENT_SECURITY-UTILITIES_LIBRARY_RUNTIME_DESCRIPTION "OpenSSL enhancement wrapper library
+-OpenSSL wrapper library simplifying use of commonly needed functionality
+-With extended support for certficate status checking using CRLs and/or OCSP")
+-
+-set(CPACK_COMPONENT_SECURITY-UTILITIES_LIBRARY_DEVELOPMENT_DESCRIPTION "libsecutils C headers and documentation
+-Development support for libsecutils")
+-
+-set(CPACK_COMPONENT_SECURITY-UTILITIES_ICVUTIL_RUNTIME_DESCRIPTION "libsecutils helper binaries
+-Stand-alone helper CLI applications using libsecutils")
+-
+-if(CMAKE_SYSTEM_NAME MATCHES "Linux")
+-  set(CPACK_GENERATOR "DEB")
+-  set(EXT "deb")
+-
+-  # see also https://gitlab.kitware.com/cmake/cmake/-/issues/24929 and
+-  # https://stackoverflow.com/questions/46490448/how-i-can-add-a-changelog-in-deb-with-cmake
+-  add_custom_command(
+-    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/debian/changelog"
+-    COMMAND gzip -cn9 "${CMAKE_CURRENT_SOURCE_DIR}/debian/changelog"
+-    > "${CMAKE_CURRENT_BINARY_DIR}/changelog.gz"
+-    OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/changelog.gz"
++  SET(CPACK_PACKAGE_NAME libsecutils)
++  SET(CPACK_PACKAGE_HOMEPAGE_URL "https://github.com/siemens/libsecutils")
++  SET(CPACK_PACKAGE_ICON "${CMAKE_CURRENT_SOURCE_DIR}/libsecutils.svg")
++  SET(CPACK_RESOURCE_FILE_README "${CMAKE_CURRENT_SOURCE_DIR}/README.md")
++  SET(CPACK_RESOURCE_FILE_LICENSE "${CMAKE_CURRENT_SOURCE_DIR}/LICENSE.txt")
++  SET(CPACK_PACKAGE_VENDOR "Siemens")
++  set(CPACK_PACKAGE_CONTACT "David von Oheimb <David.von.Oheimb@siemens.com>")
++
++  set(CPACK_STRIP_FILES ON)
++
++  set(CPACK_COMPONENTS_ALL
++    security-utilities_library_Runtime
++    security-utilities_library_Development
+   )
+-  if(NOT TARGET changelog)
+-    add_custom_target(changelog ALL DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/changelog.gz")
++  if (SECURITY_UTILITIES_USE_ICV)
++    list(APPEND CPACK_COMPONENTS_ALL security-utilities_icvutil_Runtime)
+   endif()
+ 
+-  # help CPackDeb please dpkg-shlibdeps
+-  if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.20.0")
+-    set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS_PRIVATE_DIRS "../lib/${CMAKE_INSTALL_FULL_LIBDIR}")
+-  else()
+-    set(CMAKE_INSTALL_RPATH # must be done before add_executable()
+-        "../lib/${CMAKE_INSTALL_FULL_LIBDIR}")
+-  endif()
++  set(CPACK_COMPONENT_SECURITY-UTILITIES_LIBRARY_RUNTIME_DESCRIPTION "OpenSSL enhancement wrapper library
++  OpenSSL wrapper library simplifying use of commonly needed functionality
++  With extended support for certficate status checking using CRLs and/or OCSP")
+ 
+-  set(CPACK_DEBIAN_PACKAGE_GENERATE_SHLIBS ON)
+-  set(CPACK_DEBIAN_ENABLE_COMPONENT_DEPENDS ON)
+-  set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+-  get_target_property(BINARY_DIR_LIBRARY security-utilities_library BINARY_DIR)
+-  set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS_PRIVATE_DIRS "${CMAKE_CURRENT_BINARY_DIR}" "${BINARY_DIR_LIBRARY}")
+-  set(CPACK_DEB_COMPONENT_INSTALL ON)
+-
+-  set(CPACK_DEBIAN_SECURITY-UTILITIES_LIBRARY_RUNTIME_PACKAGE_NAME "${CPACK_PACKAGE_NAME}")
+-  set(CPACK_DEBIAN_SECURITY-UTILITIES_LIBRARY_RUNTIME_FILE_NAME DEB-DEFAULT)
+-  set(CPACK_DEBIAN_SECURITY-UTILITIES_LIBRARY_RUNTIME_PACKAGE_SECTION "libs")
+-  # see also https://gitlab.kitware.com/cmake/cmake/-/issues/21834
+-  # CPack Deb does not create postinst when installing to /usr/lib/x86_64-linux-gnu
+-  set(CPACK_DEBIAN_SECURITY-UTILITIES_LIBRARY_RUNTIME_PACKAGE_CONTROL_EXTRA "${CMAKE_CURRENT_SOURCE_DIR}/debian/extra/triggers")
+-  set(CPACK_DEBIAN_SECURITY-UTILITIES_LIBRARY_RUNTIME_PACKAGE_CONTROL_STRICT_PERMISSION TRUE)
+-
+-  set(CPACK_DEBIAN_SECURITY-UTILITIES_LIBRARY_DEVELOPMENT_PACKAGE_NAME "${CPACK_PACKAGE_NAME}-dev")
+-  set(CPACK_DEBIAN_SECURITY-UTILITIES_LIBRARY_DEVELOPMENT_FILE_NAME DEB-DEFAULT)
+-  set(CPACK_DEBIAN_SECURITY-UTILITIES_LIBRARY_DEVELOPMENT_PACKAGE_ARCHITECTURE "all")
+-  set(CPACK_DEBIAN_SECURITY-UTILITIES_LIBRARY_DEVELOPMENT_PACKAGE_SECTION "devel")
+-  set(CPACK_DEBIAN_SECURITY-UTILITIES_LIBRARY_DEVELOPMENT_PACKAGE_DEPENDS "libsecutils (>= ${security-utilities_VERSION})")
+-  set(CPACK_DEBIAN_SECURITY-UTILITIES_LIBRARY_DEVELOPMENT_PACKAGE_SUGGESTS "libssl-dev, libuta-dev")
+-
+-  set(CPACK_DEBIAN_SECURITY-UTILITIES_ICVUTIL_RUNTIME_PACKAGE_NAME "${CPACK_PACKAGE_NAME}-bin")
+-  set(CPACK_DEBIAN_SECURITY-UTILITIES_ICVUTIL_RUNTIME_FILE_NAME DEB-DEFAULT)
+-  set(CPACK_DEBIAN_SECURITY-UTILITIES_ICVUTIL_RUNTIME_PACKAGE_SECTION "utils")
+-else(Linux)
+-  #if(APPLE)
+-  #  set(CPACK_GENERATOR "Bundle")
+-  #  set(EXT "bundle")
+-  #  set(CPACK_BUNDLE_NAME "${CPACK_PACKAGE_NAME}")
+-  #else()
+-    set(CPACK_GENERATOR "ZIP")
+-    set(EXT "zip")
+-  #endif(APPLE)
+-endif(CMAKE_SYSTEM_NAME MATCHES "Linux")
+-
+-set(CPACK_SOURCE_GENERATOR "TGZ")
+-#set(CPACK_SET_DESTDIR TRUE) # prevents package creation error when using cpack
+-set(CPACK_VERBATIM_VARIABLES YES)
+-
+-set(CPACK_SOURCE_IGNORE_FILES
+-  ${CPACK_IGNORE_FILES}
+-  ~$
+-  \\.diff$
+-  \./\.git/
+-  \\.git$
+-  \\.deb$
+-  \\.gz$
+-  \\.zip$
+-  \\.o$
+-  \\.so
+-  \\.dylib$
+-  \./attic/
+-  \./tmp/
+-  CMakeFiles/
+-  _CPack_Packages/
+-  \\.cmake$
+-  /Makefile$
+-  ./CMakeCache.txt$
+-  ./CMakeDoxyfile.in$
+-  ./Doxyfile.doc$
+-  /compile_commands.json$
+-  /install_manifest.*\.txt$
+-  /changelog.gz$
+-  \\.substvars$
+-  \\.log$
+-  \./debian/\\.debhelper/
+-  \./debian/tmp/
+-  \./debian/files$
+-  \./debian/md5sums$
+-  \./debian/shlibs$
+-  \./debian/substvars$
+-  \./debian/triggers$
+-  \./debian/debhelper-build-stamp$
+-  \./debian/libsecutils/
+-  \./debian/libsecutils-dev/
+-  \./debian/libsecutils-bin/
+-  \./doc/
+-  /icvutil$
+-  /src/libsecutils/include/secutils/secutils_static_config.h$
+-)
+-
+-include(CPack)
+-
+-# see also https://gitlab.kitware.com/cmake/cmake/-/issues/21832
+-# CPack Deb lacks a way to configure copyright files by component
+-foreach(component IN LISTS CPACK_COMPONENTS_ALL)
+-  if(${component} STREQUAL "security-utilities_library_Runtime")
+-    set(suffix "")
+-  elseif(${component} STREQUAL "security-utilities_library_Development")
+-    set(suffix "-dev")
+-  elseif(${component} STREQUAL "security-utilities_icvutil_Runtime")
+-    set(suffix "-bin")
+-  else()
+-    set(suffix "")
+-  endif()
++  set(CPACK_COMPONENT_SECURITY-UTILITIES_LIBRARY_DEVELOPMENT_DESCRIPTION "libsecutils C headers and documentation
++  Development support for libsecutils")
+ 
+-  set(COMPONENT_DOC_DIRECTORY "${PROJECT_NAME}${suffix}")
++  set(CPACK_COMPONENT_SECURITY-UTILITIES_ICVUTIL_RUNTIME_DESCRIPTION "libsecutils helper binaries
++  Stand-alone helper CLI applications using libsecutils")
+ 
+-  if(suffix STREQUAL "-dev")
+-    install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doc/html
+-      OPTIONAL # TODO add build for doc/
+-      DESTINATION "${CMAKE_INSTALL_DOCDIR}/${COMPONENT_DOC_DIRECTORY}"
+-      COMPONENT security-utilities_library_Development
++  if(CMAKE_SYSTEM_NAME MATCHES "Linux")
++    set(CPACK_GENERATOR "DEB")
++    set(EXT "deb")
++
++    # see also https://gitlab.kitware.com/cmake/cmake/-/issues/24929 and
++    # https://stackoverflow.com/questions/46490448/how-i-can-add-a-changelog-in-deb-with-cmake
++    add_custom_command(
++      DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/debian/changelog"
++      COMMAND gzip -cn9 "${CMAKE_CURRENT_SOURCE_DIR}/debian/changelog"
++      > "${CMAKE_CURRENT_BINARY_DIR}/changelog.gz"
++      OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/changelog.gz"
+     )
+-  endif()
+-  install(FILES
+-    "${CMAKE_CURRENT_SOURCE_DIR}/libsecutils.svg"
+-    DESTINATION "${CMAKE_INSTALL_DOCDIR}/${COMPONENT_DOC_DIRECTORY}"
+-    COMPONENT ${component}
++    if(NOT TARGET changelog)
++      add_custom_target(changelog ALL DEPENDS "${CMAKE_CURRENT_BINARY_DIR}/changelog.gz")
++    endif()
++
++    # help CPackDeb please dpkg-shlibdeps
++    if(${CMAKE_VERSION} VERSION_GREATER_EQUAL "3.20.0")
++      set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS_PRIVATE_DIRS "../lib/${CMAKE_INSTALL_FULL_LIBDIR}")
++    else()
++      set(CMAKE_INSTALL_RPATH # must be done before add_executable()
++          "../lib/${CMAKE_INSTALL_FULL_LIBDIR}")
++    endif()
++
++    set(CPACK_DEBIAN_PACKAGE_GENERATE_SHLIBS ON)
++    set(CPACK_DEBIAN_ENABLE_COMPONENT_DEPENDS ON)
++    set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
++    get_target_property(BINARY_DIR_LIBRARY security-utilities_library BINARY_DIR)
++    set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS_PRIVATE_DIRS "${CMAKE_CURRENT_BINARY_DIR}" "${BINARY_DIR_LIBRARY}")
++    set(CPACK_DEB_COMPONENT_INSTALL ON)
++
++    set(CPACK_DEBIAN_SECURITY-UTILITIES_LIBRARY_RUNTIME_PACKAGE_NAME "${CPACK_PACKAGE_NAME}")
++    set(CPACK_DEBIAN_SECURITY-UTILITIES_LIBRARY_RUNTIME_FILE_NAME DEB-DEFAULT)
++    set(CPACK_DEBIAN_SECURITY-UTILITIES_LIBRARY_RUNTIME_PACKAGE_SECTION "libs")
++    # see also https://gitlab.kitware.com/cmake/cmake/-/issues/21834
++    # CPack Deb does not create postinst when installing to /usr/lib/x86_64-linux-gnu
++    set(CPACK_DEBIAN_SECURITY-UTILITIES_LIBRARY_RUNTIME_PACKAGE_CONTROL_EXTRA "${CMAKE_CURRENT_SOURCE_DIR}/debian/extra/triggers")
++    set(CPACK_DEBIAN_SECURITY-UTILITIES_LIBRARY_RUNTIME_PACKAGE_CONTROL_STRICT_PERMISSION TRUE)
++
++    set(CPACK_DEBIAN_SECURITY-UTILITIES_LIBRARY_DEVELOPMENT_PACKAGE_NAME "${CPACK_PACKAGE_NAME}-dev")
++    set(CPACK_DEBIAN_SECURITY-UTILITIES_LIBRARY_DEVELOPMENT_FILE_NAME DEB-DEFAULT)
++    set(CPACK_DEBIAN_SECURITY-UTILITIES_LIBRARY_DEVELOPMENT_PACKAGE_ARCHITECTURE "all")
++    set(CPACK_DEBIAN_SECURITY-UTILITIES_LIBRARY_DEVELOPMENT_PACKAGE_SECTION "devel")
++    set(CPACK_DEBIAN_SECURITY-UTILITIES_LIBRARY_DEVELOPMENT_PACKAGE_DEPENDS "libsecutils (>= ${security-utilities_VERSION})")
++    set(CPACK_DEBIAN_SECURITY-UTILITIES_LIBRARY_DEVELOPMENT_PACKAGE_SUGGESTS "libssl-dev, libuta-dev")
++
++    set(CPACK_DEBIAN_SECURITY-UTILITIES_ICVUTIL_RUNTIME_PACKAGE_NAME "${CPACK_PACKAGE_NAME}-bin")
++    set(CPACK_DEBIAN_SECURITY-UTILITIES_ICVUTIL_RUNTIME_FILE_NAME DEB-DEFAULT)
++    set(CPACK_DEBIAN_SECURITY-UTILITIES_ICVUTIL_RUNTIME_PACKAGE_SECTION "utils")
++  else(Linux)
++    #if(APPLE)
++    #  set(CPACK_GENERATOR "Bundle")
++    #  set(EXT "bundle")
++    #  set(CPACK_BUNDLE_NAME "${CPACK_PACKAGE_NAME}")
++    #else()
++      set(CPACK_GENERATOR "ZIP")
++      set(EXT "zip")
++    #endif(APPLE)
++  endif(CMAKE_SYSTEM_NAME MATCHES "Linux")
++
++  set(CPACK_SOURCE_GENERATOR "TGZ")
++  #set(CPACK_SET_DESTDIR TRUE) # prevents package creation error when using cpack
++  set(CPACK_VERBATIM_VARIABLES YES)
++
++  set(CPACK_SOURCE_IGNORE_FILES
++    ${CPACK_IGNORE_FILES}
++    ~$
++    \\.diff$
++    \./\.git/
++    \\.git$
++    \\.deb$
++    \\.gz$
++    \\.zip$
++    \\.o$
++    \\.so
++    \\.dylib$
++    \./attic/
++    \./tmp/
++    CMakeFiles/
++    _CPack_Packages/
++    \\.cmake$
++    /Makefile$
++    ./CMakeCache.txt$
++    ./CMakeDoxyfile.in$
++    ./Doxyfile.doc$
++    /compile_commands.json$
++    /install_manifest.*\.txt$
++    /changelog.gz$
++    \\.substvars$
++    \\.log$
++    \./debian/\\.debhelper/
++    \./debian/tmp/
++    \./debian/files$
++    \./debian/md5sums$
++    \./debian/shlibs$
++    \./debian/substvars$
++    \./debian/triggers$
++    \./debian/debhelper-build-stamp$
++    \./debian/libsecutils/
++    \./debian/libsecutils-dev/
++    \./debian/libsecutils-bin/
++    \./doc/
++    /icvutil$
+   )
+-  if(CMAKE_SYSTEM_NAME MATCHES "Linux")
++
++  include(CPack)
++
++  # see also https://gitlab.kitware.com/cmake/cmake/-/issues/21832
++  # CPack Deb lacks a way to configure copyright files by component
++  foreach(component IN LISTS CPACK_COMPONENTS_ALL)
++    if(${component} STREQUAL "security-utilities_library_Runtime")
++      set(suffix "")
++    elseif(${component} STREQUAL "security-utilities_library_Development")
++      set(suffix "-dev")
++    elseif(${component} STREQUAL "security-utilities_icvutil_Runtime")
++      set(suffix "-bin")
++    else()
++      set(suffix "")
++    endif()
++
++    set(COMPONENT_DOC_DIRECTORY "${PROJECT_NAME}${suffix}")
++
++    if(suffix STREQUAL "-dev")
++      install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/doc/html
++        OPTIONAL # TODO add build for doc/
++        DESTINATION "${CMAKE_INSTALL_DOCDIR}/${COMPONENT_DOC_DIRECTORY}"
++        COMPONENT security-utilities_library_Development
++      )
++    endif()
+     install(FILES
+-      "${CMAKE_CURRENT_SOURCE_DIR}/debian/copyright"
+-      "${CMAKE_CURRENT_BINARY_DIR}/changelog.gz"
++      "${CMAKE_CURRENT_SOURCE_DIR}/libsecutils.svg"
+       DESTINATION "${CMAKE_INSTALL_DOCDIR}/${COMPONENT_DOC_DIRECTORY}"
+       COMPONENT ${component}
+     )
++    if(CMAKE_SYSTEM_NAME MATCHES "Linux")
++      install(FILES
++        "${CMAKE_CURRENT_SOURCE_DIR}/debian/copyright"
++        "${CMAKE_CURRENT_BINARY_DIR}/changelog.gz"
++        DESTINATION "${CMAKE_INSTALL_DOCDIR}/${COMPONENT_DOC_DIRECTORY}"
++        COMPONENT ${component}
++      )
++    endif()
++  endforeach()
++
++  if(NOT TARGET ${EXT})
++    set (pack_full_name
++         "${CMAKE_CURRENT_BINARY_DIR}/${CPACK_PACKAGE_NAME}-dev_${CPACK_PACKAGE_VERSION}_all.${EXT}")
++    add_custom_command(
++      OUTPUT "${pack_full_name}"
++      DEPENDS build
++      COMMENT "Building packages possibly including doxygen run"
++      COMMAND cpack --config CPackConfig.cmake # -D CPACK_PACKAGING_INSTALL_PREFIX=
++      COMMAND cpack --config CPackSourceConfig.cmake
++      )
++    add_custom_target(${EXT} DEPENDS ${pack_full_name})
+   endif()
+-endforeach()
+-
+-if(NOT TARGET ${EXT})
+-  set (pack_full_name
+-       "${CMAKE_CURRENT_BINARY_DIR}/${CPACK_PACKAGE_NAME}-dev_${CPACK_PACKAGE_VERSION}_all.${EXT}")
+-  add_custom_command(
+-    OUTPUT "${pack_full_name}"
+-    DEPENDS build
+-    COMMENT "Building packages possibly including doxygen run"
+-    COMMAND cpack --config CPackConfig.cmake # -D CPACK_PACKAGING_INSTALL_PREFIX=
+-    COMMAND cpack --config CPackSourceConfig.cmake
+-    )
+-  add_custom_target(${EXT} DEPENDS ${pack_full_name})
+-endif()
++endif(NOT DEBIAN_BUILD)
+--- libsecutils-2.1.orig/src/CMakeLists.txt
++++ libsecutils-2.1/src/CMakeLists.txt
+@@ -26,7 +26,11 @@ if(SECURITY_UTILITIES_USE_UTA)
+ endif()
+ 
+ add_subdirectory(libsecutils)
+-
++configure_file(libsecutils.pc.in ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pc @ONLY)
++install(
++    FILES ${CMAKE_CURRENT_BINARY_DIR}/${PROJECT_NAME}.pc
++    DESTINATION ${CMAKE_INSTALL_DATAROOTDIR}/pkgconfig
++)
+ if(SECURITY_UTILITIES_USE_ICV)
+     add_subdirectory(util)
+ endif()
+--- /dev/null
++++ libsecutils-2.1/src/libsecutils.pc.in
+@@ -0,0 +1,20 @@
++# this template is filled-in by CMake `configure_file(... @ONLY)`
++# the `@....@` are filled in by CMake configure_file(), 
++# from variables set in your CMakeLists.txt or by CMake itself
++#
++# Good tutoral for understanding .pc files: 
++# https://people.freedesktop.org/~dbn/pkg-config-guide.html
++
++prefix="@CMAKE_INSTALL_PREFIX@"
++exec_prefix="${prefix}"
++libdir=${exec_prefix}/lib
++includedir="${prefix}/include"
++
++Name: @PROJECT_NAME@
++Description: @CMAKE_PROJECT_DESCRIPTION@
++URL: @CMAKE_PROJECT_HOMEPAGE_URL@
++Version: @PROJECT_VERSION@
++Requires: @pc_req_public@
++Requires.private: @pc_req_private@
++Cflags: -I"${includedir}"
++Libs: -L"${libdir}" -lsecutils
+--- libsecutils-2.1.orig/src/libsecutils/include/secutils/CMakeLists.txt
++++ libsecutils-2.1/src/libsecutils/include/secutils/CMakeLists.txt
+@@ -28,8 +28,12 @@ if(SECURITY_UTILITIES_NO_TLS)
+     set(SECUTILS_NO_TLS ON)
+ endif()
+ 
+-configure_file(secutils_static_config.h.in secutils_static_config.h)
++configure_file(secutils_static_config.h.in ${CMAKE_CURRENT_BINARY_DIR}/secutils_static_config.h)
++install(
++    FILES ${CMAKE_CURRENT_BINARY_DIR}/secutils_static_config.h
++    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/
+ 
++)
+ target_include_directories(security-utilities_library PUBLIC
+     $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>
+ )
